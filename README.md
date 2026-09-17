@@ -1,4 +1,4 @@
-```markdown
+markdown
 # Physarum: Morphogenesis & Transport Network Engine
 
 <a href="#english">English</a> | <a href="#chinese">中文说明</a>
@@ -298,7 +298,5 @@ python main.py
 * **Sage Jenson**: *Physarum Polycephalum Simulation & Procedural Aesthetics*. `https://cargocollective.com/sagejenson/physarum` (Formative artistic and algorithmic blueprint for 2.5D physical normal-mapped slime mold tissue).
 * **Nicolas Barradeau (nicoptere)**: *WebGL GPGPU Multi-agent Transport Network*. `https://github.com/nicoptere/physarum` (Pioneering dual-channel GPGPU frame-buffer delay blending and periodic torus mapping).
 * **Michael Fogleman**: *Physarum - Multi-species Agent Simulation in Go*. `https://github.com/fogleman/physarum` (Implementation of cross-species affinity tensors, cascaded multi-pass spatial blur, and sub-pixel continuous interpolation).
-
-```
 
 ```
