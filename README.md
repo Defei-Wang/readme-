@@ -25,15 +25,15 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 ```
                               [ Morphogenetic Problem Space ]
                                              │
-             ┌───────────────────────────────┴──────────────────────────────┐
-             ▼                                                              ▼
-   [ Branch A: Continuum Field ]                                [ Branch B: Discrete Graph ]
-   (Jones 2010 / Lague / Yuen)                                 (Runions 2005 / Tero 2010)
-             │                                                              │
-             ├─► v1.0: Dense Swarm + Shuttle Streaming                      ├─► v3.0: Pure Space Colonization (SCA)
-             ├─► v2.0: Generational Tip-Growth (ianpilon)                   └─► v3.1: Spatial Hashing + Retrograde
-             ├─► v4.0: Dual-Channel Delay Blending (nicoptere)                         Pruning + On-Screen GGUI HUD
-             └─► v5.0: Antagonistic Species + 2.5D Normal (fogleman / Jenson)
+              ┌──────────────────────────────┴──────────────────────────────┐
+              ▼                                                             ▼
+   [ Branch A: Continuum Field ]                                 [ Branch B: Discrete Graph ]
+   (Jones 2010 / Lague / Yuen)                                  (Runions 2005 / Tero 2010)
+              │                                                             │
+              ├─► v1.0: Dense Swarm + Shuttle Streaming                     ├─► v3.0: Pure Space Colonization (SCA)
+              ├─► v2.0: Generational Tip-Growth (ianpilon)                   └─► v3.1: Spatial Hashing + Retrograde
+              ├─► v4.0: Dual-Channel Delay Blending (nicoptere)                         Pruning + On-Screen GGUI HUD
+              └─► v5.0: Antagonistic Species + 2.5D Normal (fogleman / Jenson)
 ```
 
 ---
@@ -47,7 +47,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **Mathematical Stencil**:
   * Agent heading update via discrete three-point differential sensing:
     $$\theta_{t+1} = \theta_t + \Delta\theta \cdot \mathrm{sign}(S_R - S_L)$$
-    where forward offset sensors ($S_L, S_C, S_R$) sample the trail intensity at sensor offset $SO = 22.5^\circ$, sensor angle $SA = 45.0^\circ$, and sampling distance $SS = 3.5\mathrm{px}$.
+    where forward offset sensors ($S_L, S_C, S_R$) sample the trail intensity at sensor offset $SO = 22.5^\circ$, sensor angle $SA = 45.0^\circ$, and sampling distance $SS = 3.5\text{px}$.
   * Cytoplasmic shuttle streaming: Macro-scale rhythmic contraction modulated via low-frequency sinusoidal velocity fields:
     $$v(t) = v_0 \cdot \left[1.0 + 0.3 \sin\left(\omega t - \vec{k} \cdot \vec{x}\right)\right]$$
   * Multiplicative field decay ($\gamma = 0.94$) over an isotropic $3 \times 3$ discrete convolution kernel.
@@ -73,10 +73,10 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **Architecture**: Complete transition from continuum grid Eulerian tracking to discrete Lagrangian graph growth based on spatial attractor point distributions.
 * **Mechanics**:
   * 12,000 discrete chemoattractant markers $\vec{A}_k$ distributed pseudo-randomly across the substrate.
-  * Influence cone search: Each active marker pulls the nearest vascular graph node $\vec{N}_j$ within search radius $D_{\mathrm{attr}} = 38.0\mathrm{px}$.
+  * Influence cone search: Each active marker pulls the nearest vascular graph node $\vec{N}_j$ within search radius $D_{\mathrm{attr}} = 38.0\text{px}$.
   * Normalized growth vector accumulation:
     $$\vec{v}_{\mathrm{grow}} = \mathrm{normalize}\left(\sum_{k} \frac{\vec{A}_k - \vec{N}_j}{\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{}}\right)$$
-  * Consumption threshold: Attractors undergo metabolic depletion and deletion when $\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{} < D_{\mathrm{kill}} = 7.5\mathrm{px}$.
+  * Consumption threshold: Attractors undergo metabolic depletion and deletion when $\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{} < D_{\mathrm{kill}} = 7.5\text{px}$.
 * **Structural Result**: Eradicates sponge-maze collapse. Guarantees hierarchical trunk-to-capillary diameter scaling while maintaining organic topological spacing.
 
 #### `v3.1` - Spatial-Hashed Optimization, Retrograde Pruning & Interactive HUD
@@ -84,7 +84,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **Theoretical Foundation**: Atsushi Tero & Toshiyuki Nakagaki (2010) adaptive biological network design (Tokyo railway experiment), coupled with Runions' SCA and Hagen-Poiseuille hydraulic resistance.
 * **Architecture**: High-performance optimization of the SCA vascular engine with Poiseuille-inspired retrograde pruning, spatial hash partitioning, and Taichi GGUI instrumentation.
 * **Key Enhancements**:
-  * **GPU Spatial Hashing Acceleration**: Partitions the grid into spatial bins of size $40 \times 40\mathrm{px}$, reducing the nearest-node search from brute-force `O(N_attrs * N_nodes)` down to localized adjacent cell sweeps (`MAX_NODES_PER_CELL = 128`), maintaining 60 FPS on mid-range hardware.
+  * **GPU Spatial Hashing Acceleration**: Partitions the grid into spatial bins of size $40 \times 40\text{px}$, reducing the nearest-node search from brute-force `O(N_attrs * N_nodes)` down to localized adjacent cell sweeps (`MAX_NODES_PER_CELL = 128`), maintaining 60 FPS on mid-range hardware.
   * **Retrograde Flow & Poiseuille Pruning**: Upon physical contact between an exploration tip and a nutrient site, a recursive backward traversal pumps transport flux upstream through parent indices:
     $$\Phi_{\mathrm{parent}} \leftarrow \Phi_{\mathrm{parent}} + \Delta \Phi$$
     Vessels with stagnant flow (`flow < 0.16`) suffer metabolic penalty (`vitality -= 0.0035`), dissolving and clearing non-transporting search paths within 3\~5 seconds.
@@ -148,17 +148,17 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 本项目完整推演、验证并沉淀了上述两套体系，在 Git Tags 中以 `v1.0` 至 `v3.1` 以及 `v4.0`、`v5.0` 形成严密的科研演进链条。
 
 ```
-                             [ 黏菌形态发生计算流 ]
-                                       │
-             ┌─────────────────────────┴─────────────────────────┐
-             ▼                                                   ▼
-     [ 分支甲：连续相场粒子流 ]                           [ 分支乙：离散拓扑图网络 ]
-   (Jones 2010 / Lague / Yuen)                          (Runions 2005 / Tero 2010)
-             │                                                   │
-             ├─► v1.0: 密集粒子流与原生质穿梭流                  ├─► v3.0: 纯空间殖民图算法 (SCA)
-             ├─► v2.0: 显式代际顶芽分叉 (ianpilon)               └─► v3.1: 空间哈希加速 + 逆行通量
-             ├─► v4.0: 双通道延迟混合 (nicoptere)                          剪枝代谢 + 原生 GGUI 仪表盘
-             └─► v5.0: 异种拮抗矩阵与 2.5D 法线 (fogleman / Jenson)
+                              [ 黏菌形态发生计算流 ]
+                                         │
+              ┌──────────────────────────┴──────────────────────────┐
+              ▼                                                     ▼
+     [ 分支甲：连续相场粒子流 ]                            [ 分支乙：离散拓扑图网络 ]
+   (Jones 2010 / Lague / Yuen)                           (Runions 2005 / Tero 2010)
+              │                                                     │
+              ├─► v1.0: 密集粒子流与原生质穿梭流                    ├─► v3.0: 纯空间殖民图算法 (SCA)
+              ├─► v2.0: 显式代际顶芽分叉 (ianpilon)                 └─► v3.1: 空间哈希加速 + 逆行通量
+              ├─► v4.0: 双通道延迟混合 (nicoptere)                           剪枝代谢 + 原生 GGUI 仪表盘
+              └─► v5.0: 异种拮抗矩阵与 2.5D 法线 (fogleman / Jenson)
 ```
 
 ---
@@ -172,7 +172,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **核心数学算子**：
   * 三向离散差分偏转决策：
     $$\theta_{t+1} = \theta_t + \Delta\theta \cdot \mathrm{sign}(S_R - S_L)$$
-    前置三向探针偏移角 $SO = 22.5^\circ$，感知半角 $SA = 45.0^\circ$，前探步距 $SS = 3.5\mathrm{px}$。
+    前置三向探针偏移角 $SO = 22.5^\circ$，感知半角 $SA = 45.0^\circ$，前探步距 $SS = 3.5\text{px}$。
   * 原生质往复穿梭流（Shuttle Streaming）：低频行波调制运动步长与分泌通量：
     $$v(t) = v_0 \cdot \left[1.0 + 0.3 \sin\left(\omega t - \vec{k} \cdot \vec{x}\right)\right]$$
   * $3 \times 3$ 离散高斯平滑核卷积与乘法挥发（衰减率 $\gamma = 0.94$）。
@@ -197,9 +197,9 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **计算架构**：彻底放弃欧拉连续网格，全面转向基于空间殖民算法的拉格朗日拓扑树图。
 * **动力学机制**：
   * 12,000 个离散养分吸引子 $\vec{A}_k$ 离散布设于底质空间。
-  * 影响域检索：吸引子在影响半径 $D_{\mathrm{attr}} = 38.0\mathrm{px}$ 内对临近血管树节点施加归一化牵引力：
+  * 影响域检索：吸引子在影响半径 $D_{\mathrm{attr}} = 38.0\text{px}$ 内对临近血管树节点施加归一化牵引力：
     $$\vec{v}_{\mathrm{grow}} = \mathrm{normalize}\left(\sum_{k} \frac{\vec{A}_k - \vec{N}_j}{\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{}}\right)$$
-  * 养分消耗判定：当节点逼近至摄食半径 $D_{\mathrm{kill}} = 7.5\mathrm{px}$ 内部时，吸引子灭活并转化为脉管粗度。
+  * 养分消耗判定：当节点逼近至摄食半径 $D_{\mathrm{kill}} = 7.5\text{px}$ 内部时，吸引子灭活并转化为脉管粗度。
 * **形态学突破**：从几何拓扑层面根除了网格模型的迷宫海绵化缺陷，严格构建出主干粗壮、末端毛细的自然层级结构。
 
 #### `v3.1` - 空间哈希网格加速、逆行剪枝代谢与交互 HUD
@@ -207,7 +207,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **学术溯源**: 完整复刻 Atsushi Tero & Toshiyuki Nakagaki et al. (2010) 发表于 *Science* 的东京铁路网络自适应流体阻力动力学，结合泊肃叶定律与 SCA 拓扑扩展。
 * **计算架构**：SCA 拓扑图系统的工程化重构与生物流体力学闭环。
 * **核心升级机制**：
-  * **GPU 空间哈希加速桶**：将视口划分为 $40 \times 40\mathrm{px}$ 的离散网格单元，把几何最近邻检索复杂度从全局暴力比对 `O(N_attrs * N_nodes)` 降低到局域网格循环（单个单元容量阈值 `MAX_NODES_PER_CELL = 128`），在 1080P/2K 视口下稳定维持 60 FPS 满帧运行。
+  * **GPU 空间哈希加速桶**：将视口划分为 $40 \times 40\text{px}$ 的离散网格单元，把几何最近邻检索复杂度从全局暴力比对 `O(N_attrs * N_nodes)` 降低到局域网格循环（单个单元容量阈值 `MAX_NODES_PER_CELL = 128`），在 1080P/2K 视口下稳定维持 60 FPS 满帧运行。
   * **逆行通量与泊肃叶剪枝（Retrograde Pruning）**：当探索末梢物理触碰燕麦养分点时，激活反向通量泵（Retrograde Flow），沿父节点指针向母核回溯注入输运通量 $\Delta \Phi$：
     $$\Phi_{\mathrm{parent}} \leftarrow \Phi_{\mathrm{parent}} + 0.55$$
     输运通量低于阈值（`flow < 0.16`）的冗余探索细丝，其生物活性以每步 $0.0035$ 的速率衰减并在 3\~5 秒内完全凋亡溶解。
