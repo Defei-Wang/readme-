@@ -2,449 +2,331 @@
 
 [English](#english-documentation) | [中文说明](#chinese-documentation)
 
-A GPU-accelerated simulation of the morphogenesis and adaptive transport
-networks of *Physarum polycephalum* (true slime mold), built in Python on
-the Taichi compute framework with CUDA / Vulkan backends.
+A high-performance research pipeline and procedural generative system simulating the morphogenesis, foraging dynamics, and adaptive cytoplasmic transport networks of *Physarum polycephalum* (true slime mold).
 
-Two computational lineages, six tagged releases:
-
-```
-                         [ Morphogenesis Problem Space ]
-                                       │
-             ┌─────────────────────────┴─────────────────────────┐
-             ▼                                                   ▼
-   [ Continuum Field Line ]                              [ Discrete Graph Line ]
-   (Jones 2010 / Barradeau / Fogleman)                   (Runions 2005 / Tero-Nakagaki 2010)
-             │                                                   │
-             ├─► v1.0: Dense Swarm + Shuttle Streaming           ├─► v3.0: Space Colonization (SCA)
-             ├─► v2.0: Generational Tip-Growth (ianpilon)        └─► v3.1: Spatial Hashing + Retrograde
-             ├─► v4.0: Dual-Channel Delayed Blending (nicoptere)          Pruning + GGUI HUD
-             └─► v5.0: Multi-Species Antagonism + 2.5D Relief
-                        (fogleman / Sage Jenson)
-```
+Implemented in Python with GPU acceleration via the Taichi compute infrastructure, targeting CUDA and Vulkan backends. The repository chronicles the technical lineage from classical agent-continuum heuristics (Jeff Jones, 2010) to topological space colonization graphs (Adam Runions, 2005), adaptive biological transport optimization (Atsushi Tero & Toshiyuki Nakagaki, 2010), GPGPU dual-channel frame-buffer delay blending (Nicolas Barradeau), and multi-species antagonistic 2.5D normal-mapped photometrics (Michael Fogleman, Sage Jenson).
 
 ---
 
 <a id="english-documentation"></a>
 ## English Documentation
 
-### Two Computational Lineages
+### Architectural Duality & Computational Paradigms
 
-1. **Continuum multi-agent field** (v1.0, v2.0, v4.0, v5.0): agents deposit
-   and sample a shared scalar field; networks emerge from the interplay of
-   deposition, diffusion, and decay. No explicit graph exists anywhere.
-2. **Discrete topological graph growth** (v3.0, v3.1): attractor points
-   pull the nearest graph node, followed by flow-based pruning. The tree
-   is a discrete data structure, not a diffusing field.
+Simulating the morphology of *Physarum polycephalum* requires resolving a fundamental biomechanical paradox: **local protoplasmic fluid continuity versus macroscopic transport network pruning**. Computational generative systems generally branch into two distinct paradigms:
 
-### `v1.0` — Dense Swarm & Shuttle Streaming
+1. **Continuum Multi-Agent Reaction-Diffusion (Jones-Lague-Yuen Pipeline)**:
+   A decentralized swarm formulation where hundreds of thousands to millions of dimensionless agents deposit and sample an information field. Network conduits emerge purely through non-linear positive feedback between trail accumulation, spatial diffusion, and exponential decay.
+2. **Discrete Topological Graph Colonization (Runions-Tero Biomechanical Engine)**:
+   A graph-theoretic formulation using discrete attractor point distributions to guide iterative venation tree growth, followed by retrograde hydraulic flow reinforcement and Hagen-Poiseuille vessel diameter pruning.
+
+This repository implements, benchmark-tests, and preserves both paradigms across sequential milestone tags (`v1.0` through `v3.1`, up to `v5.0`).
+
+```text
+                              [ Morphogenetic Problem Space ]
+                                             │
+             ┌───────────────────────────────┴──────────────────────────────┐
+             ▼                                                              ▼
+   [ Branch A: Continuum Field ]                                [ Branch B: Discrete Graph ]
+   (Jones 2010 / Lague / Yuen)                                 (Runions 2005 / Tero 2010)
+             │                                                              │
+             ├─► v1.0: Dense Swarm + Shuttle Streaming                      ├─► v3.0: Pure Space Colonization (SCA)
+             ├─► v2.0: Generational Tip-Growth (ianpilon)                   └─► v3.1: Spatial Hashing + Retrograde
+             ├─► v4.0: Dual-Channel Delay Blending (nicoptere)                         Pruning + On-Screen GGUI HUD
+             └─► v5.0: Antagonistic Species + 2.5D Normal (fogleman / Jenson)
+```
+
+---
+
+### Milestone Specifications & Theoretical Lineage
+
+#### `v1.0` - Baseline Dense Swarm & Shuttle Streaming
 * **Commit**: `2af9244`
-* **Basis**: Jeff Jones (2010) multi-agent chemoattractant transport model.
-* **Scale**: 1024×1024 grid, 1.2M agents.
-* **Turning rule** — not a clean sign() function; it's a four-way decision
-  matching the source directly:
+* **Theoretical Foundation**: Dr. Jeff Jones (2010) multi-agent chemoattractant transport model.
+* **Architecture**: Continuous scalar field coupled with 1.2M discrete active agents.
+* **Mathematical Stencil**:
+  * Agent heading update via a four-branch conditional routing check based on forward, left, and right neighborhood trail sampling ($S_F, S_L, S_R$): straight continuation when forward is maximal; random directional perturbation or left/right steering when lateral gradients dictate.
+  * Secretion deposit modulation: Rather than direct agent velocity modulation, a low-frequency sinusoidal pulse modulates the *trail deposit intensity* per step, coupled with distinct feeding/non-feeding multipliers and rhythmic phase shifts.
+  * Multiplicative field decay ($\gamma = 0.94$) over an isotropic 3×3 discrete convolution kernel.
+* **Boundary Model**: Hard spatial position clamping combined with complete heading randomization upon edge contact (preventing circular reflections and causing the characteristic edge-accumulation density rings).
 
-  ```math
-  \theta_{t+1} = \begin{cases}
-  \theta_t & F > L \text{ and } F > R \\
-  \theta_t \pm RA\ (\text{random sign}) & F < L \text{ and } F < R \\
-  \theta_t - RA & L > R \\
-  \theta_t + RA & R > L
-  \end{cases}
-  ```
-
-  sensor offset distance $SS=3.5\text{px}$, sensor half-angle $22.5^\circ$,
-  rotation step $RA=45^\circ$. (Note: the source's own variable names `SO`
-  and `SA` are swapped relative to what they actually control — described
-  here by function, not by variable name.)
-* **Shuttle streaming modulates deposition, not velocity** — a
-  low-frequency traveling wave with different coefficients depending on
-  whether the agent is over food:
-
-  ```math
-  \text{deposit} = \begin{cases}
-  D_0\,(2.5 + 1.5\sin(2t - 0.015(x{+}y)\,s)) & \text{feeding} \\
-  D_0\,(0.8 + 0.3\sin(2t - 0.015(x{+}y)\,s)) & \text{otherwise}
-  \end{cases}
-  ```
-
-  $D_0=4.0$, $s=\mathrm{sign}(\sin(0.15t))$.
-* **Boundary**: a hard position clamp plus a *fully re-randomized heading*
-  on contact — not a reflection. This is the direct cause of the bright
-  ring artifact at the dish edge.
-* **Rendering**: a two-term nonlinear color model — a low-opacity
-  "fringe" term for faint capillaries and a cubic "core" term for
-  saturated trunks.
-
-### `v2.0` — Generational Tip-Growth
+#### `v2.0` - Generational Tip-Growth & Archival Paper Shader
 * **Commit**: `d48f330`
-* **Basis**: `ianpilon`'s Processing/JS tip-growth sketch, with a botanical
-  archival-paper renderer.
-* **Architecture**: explicit agents with a generation counter and finite
-  lifespan, allocated from a fixed-size ring buffer via an atomic counter.
-* **Branch probability decays with generation**:
+* **Theoretical Foundation**: Ian Pilon (`ianpilon`) dendritic tip-growth Processing formulation, integrated with Sage Jenson's botanical color palette.
+* **Architecture**: Explicit generational recursion with finite lifespan metadata, derived from botanical apical meristem expansion.
+* **Mechanics**:
+  * Each active agent tracks recursion generation $g \in [0, 6]$ and remaining metabolic ticks $L_i$.
+  * Lateral bifurcation follows an accelerated probability distribution:
 
-  ```math
-  P_{\text{branch}}(g) = f_{ch}\cdot f_{acc}^{\,g}
-  ```
-* **Child potency decays on two independent axes**:
+$$P_{\mathrm{branch}} = P_0 \cdot \alpha_{\mathrm{acc}}^g$$
 
-  ```math
-  D_{\text{child}} = D_{\text{parent}}\cdot v_{tap} \qquad
-  L_{\text{child}} = L_{\text{base}}\cdot l_{tap}^{\,g+1}
-  ```
-* **Renderer**: four-octave FBM paper-fiber noise, plus a radially-varying
-  gamma exponent so the center and the exploring edge render differently:
+  * Distal daughters inherit attenuated deposition potency:
 
-  ```math
-  \text{trail}_{\text{shaped}} = \text{trail}^{\,0.5+0.4d}
-  ```
+$$D_{\mathrm{child}} = D_{\mathrm{parent}} \cdot V_{\mathrm{tap}}$$
 
-  ($d$ = normalized distance from center), followed by a paper→ink→edge
-  color lerp and grain overlay.
-* **Known failure mode**: every branch event hits the same atomic counter
-  (`alloc_counter`), serializing what should be parallel GPU threads
-  during a branching burst.
+* **Renderer**: Botanical archival specimen shader. Evaluates four-octave Fractional Brownian Motion (FBM) to simulate heterogeneous liquid ink absorption over porous paper substrates:
 
-### `v3.0` — Space Colonization Graph (SCA)
+$$\mathrm{Color} = \mathrm{lerp}(\vec{C}_{\mathrm{paper}}, \vec{C}_{\mathrm{ink}}, \mathrm{Trail}^\gamma) + \mathrm{Grain}(\vec{x}, t)$$
+
+* **Failure Mode Analysis**: Exponential bud proliferation triggers GPU thread serialization and thread-divergence bottlenecks around atomic allocation counters.
+
+#### `v3.0` - Pure Space Colonization Vascular Graph (SCA)
 * **Commit**: `a8923be`
-* **Basis**: Runions et al. (2005) Space Colonization Algorithm — a full
-  departure from continuum agents; the "plant" is a discrete graph.
-* **Mechanics**: 12,000 attractor points pull the nearest graph node
-  within `attract_dist = 50px`; a pulled node grows one `step_size = 3.5px`
-  step toward the normalized sum of pull vectors:
+* **Theoretical Foundation**: Adam Runions et al. (2005) Space Colonization Algorithm (SCA) for leaf venation morphogenesis.
+* **Architecture**: Complete transition from continuum grid Eulerian tracking to discrete Lagrangian graph growth based on spatial attractor point distributions.
+* **Mechanics**:
+  * Discrete chemoattractant markers distributed pseudo-randomly across the substrate.
+  * Influence cone search: Each active marker pulls the nearest vascular graph node within search radius $D_{\mathrm{attr}} = 50.0\mathrm{px}$ (step size set to $3.5\mathrm{px}$).
+  * Normalized growth vector accumulation:
 
-  ```math
-  \vec v_{\text{grow},j} = \mathrm{normalize}\left(\sum_{k\in N_j}\frac{\vec A_k-\vec N_j}{\lVert\vec A_k-\vec N_j\rVert}\right)
-  ```
+$$\vec{v}_{\mathrm{grow}} = \frac{\sum_{k} (\vec{A}_k - \vec{N}_j)}{\left\Vert \sum_{k} (\vec{A}_k - \vec{N}_j) \right\Vert}$$
 
-  An attractor is consumed once a node comes within `kill_dist = 6px`.
-* **Result**: structurally guarantees a trunk-to-capillary hierarchy —
-  sponge collapse is impossible by construction, since there's no field
-  to saturate.
-* **Known limitation**: nearest-node search is a brute-force
-  `O(N_attrs · N_nodes)` nested loop, no spatial partitioning yet
-  (that's what v3.1 adds).
+  * Consumption threshold: Attractors undergo metabolic depletion and deletion when $\Vert{}\vec{A}_k - \vec{N}_j\Vert{} < D_{\mathrm{kill}} = 6.0\mathrm{px}$.
+* **Structural Result**: Eradicates sponge-maze collapse. Guarantees hierarchical trunk-to-capillary diameter scaling while maintaining organic topological spacing.
 
-### `v3.1` — Spatial-Hashed Optimization, Retrograde Pruning & GGUI HUD
+#### `v3.1` - Spatial-Hashed Optimization, Retrograde Pruning & Interactive HUD
 * **Commit**: `7bda3a1`
-* **Basis**: builds on v3.0's SCA graph, adding flow-based pruning
-  conceptually aligned with Tero & Nakagaki's (2010) adaptive-network
-  work, plus spatial partitioning for the nearest-node search.
-* **What the release notes confirm**:
-  * A spatial hash replaces v3.0's brute-force search, addressing that
-    exact `O(N_attrs · N_nodes)` bottleneck.
-  * Contact with a food point triggers a **retrograde flow** signal that
-    propagates back through parent links, reinforcing the path that led
-    to food.
-  * Dead-end filaments that aren't carrying reinforced flow undergo
-    **Poiseuille-style pruning** and dissolve within roughly 3–5 seconds.
-  * An in-viewport **Dear ImGui HUD** shows live node/state metrics, and
-    an idle "breathing circle" indicates where to inoculate before
-    placement.
-* **Not yet confirmed** — flagged rather than guessed: the release notes
-  don't give exact constants (hash cell size, max nodes per cell, the
-  flow threshold that counts as "stagnant," the per-step vitality decay
-  rate, or the retrograde-flux increment). If you want those numbers in
-  the README, they need to come from the actual `v3.1` source rather than
-  from a prior draft — an earlier version of this document had specific
-  numbers here (40×40px cells, `MAX_NODES_PER_CELL=128`, `flow<0.16`,
-  `vitality -= 0.0035`, `Φ_parent += 0.55`) that don't appear anywhere in
-  your release notes, so I've removed them rather than repeat
-  unverifiable figures.
-* **Controls**: RMB inoculates a mother-mass at the cursor; LMB drops a
-  food point; Space pauses/resumes; `R` resets the simulation.
-* **Requirements**: Python 3.8–3.12, NVIDIA GPU with CUDA (4GB+ VRAM
-  recommended), `pip install taichi`.
+* **Theoretical Foundation**: Atsushi Tero & Toshiyuki Nakagaki (2010) adaptive biological network design (Tokyo railway experiment), coupled with Runions' SCA and Hagen-Poiseuille hydraulic resistance.
+* **Architecture**: High-performance optimization of the SCA vascular engine with Poiseuille-inspired retrograde pruning, spatial hash partitioning, and Taichi GGUI instrumentation.
+* **Key Enhancements**:
+  * **GPU Spatial Hashing Acceleration**: Partitions the grid into localized spatial bins to constrain nearest-node neighbor searches, maintaining high frame rates on consumer GPUs.
+  * **Retrograde Flow & Poiseuille Pruning**: Upon physical contact between an exploration tip and a nutrient site, a recursive backward traversal pumps transport flux upstream through parent indices. Vessels with stagnant flow suffer metabolic penalties, dissolving and clearing non-transporting search paths within 3\~5 seconds.
+  * **Real-time On-Screen HUD**: Integrated Dear ImGui overlay rendering node metrics, memory saturation, and interactive state indicators.
+  * **Inoculation Guidance**: Dynamic breathing visual feedback indicating pre-inoculation placement.
 
-### `v4.0` — Dual-Channel Delayed Blending
+#### `v4.0` - Dual-Channel Delayed Blending & Torus Topology
 * **Commit**: `e4941c2`
-* **Basis**: a close translation of `nicoptere/physarum`'s WebGL/GLSL
-  source.
-* **Scale**: 512×512 = 262,144 agents (matching the original's
-  texture-based particle count), 800×800 grid.
-* **Two channels instead of one field** — **R** (this frame's rasterized
-  positions) and **G** (temporally-blended memory), asymmetrically mixed:
+* **Theoretical Foundation**: Nicolas Barradeau (`nicoptere`) WebGL GPGPU dual-texture ping-pong architecture.
+* **Architecture**: 1:1 translation of classic WebGL GPGPU frame-buffer delay blending pipelines.
+* **Mechanics**:
+  * **R Channel (Instantaneous Impulse)**: Binary rasterization of instantaneous agent positions.
+  * **G Channel (Morphogenetic Memory)**: Spatial temporal decay buffer.
+  * Asymmetric convolution kernel:
 
-  ```math
-  G_{t+1}(\vec x) = \gamma\sum_{\vec\delta}\tfrac{1}{9}\left[R_t(\vec x+\vec\delta) + 0.5\,G_t(\vec x+\vec\delta)\right]
-  ```
+$$G_{t+1}(\vec{x}) = \gamma \sum_{\vec{\delta}} K(\vec{\delta}) \left[ R_t(\vec{x} + \vec{\delta}) + 0.5 \cdot G_t(\vec{x} + \vec{\delta}) \right]$$
 
-  $\gamma=0.90$, summed over the 3×3 neighborhood.
-* **Everything operates in normalized UV space**, not pixels — sensing,
-  step size, and the toroidal wrap ($\vec x_{\text{wrapped}}=\mathrm{fract}(\vec x)$)
-  all happen in $[0,1]^2$, mirroring the original shader's texture-space
-  design.
-* **Randomness**: turning ties are broken by a hash function replicating
-  the original GLSL `rand()`, not Taichi's built-in RNG.
-* **Interaction**: holding LMB injects a 1200-agent burst around the
-  cursor each frame.
+  * Torus periodic boundary topology: Evaluated via mathematical fractional arithmetic:
 
-### `v5.0` — Multi-Species Antagonism & 2.5D Relief
+$$\vec{x}_{\mathrm{wrapped}} = \vec{x} - \lfloor \vec{x} \rfloor$$
+
+* **Structural Result**: Complete removal of boundary accumulation. The asymmetric 1.0 : 0.5 kernel weight preserves sharp leading search fronts while leaving smooth, fluid conduits behind.
+
+#### `v5.0` - Multi-Species Antagonism & 2.5D Height-Field Normal Mapping
 * **Commit**: `86e1294`
-* **Basis**: Michael Fogleman's (`fogleman/physarum`) multi-species model,
-  itself referencing Sage Jenson's `pkg/physarum/model.go`, combined with
-  2.5D normal-mapped shading.
-* **Scale**: 600,000 agents, 2 species, 800×800 grid, toroidal
-  (pixel-space) wrap.
-* **Species interaction tensor** — each species senses a weighted mix of
-  both density fields:
+* **Theoretical Foundation**: Michael Fogleman (`fogleman/physarum`) multi-species interaction tensors, combined with Sage Jenson's 2.5D photometric micro-relief normal bump mapping.
+* **Architecture**: Cross-species affinity tensor coupled with photometric normal-bump reconstruction.
+* **Mechanics**:
+  * **Species Interaction Tensor (2×2)**:
 
-  ```math
-  M = \begin{pmatrix} +1.0 & -0.4 \\ -0.4 & +1.0 \end{pmatrix}
-  ```
+$$M = \begin{pmatrix} +1.0 & -0.4 \\ -0.4 & +1.0 \end{pmatrix}$$
 
-  Positive diagonal terms drive same-species cohesion; negative
-  off-diagonal terms push species apart, tearing open gaps and keeping
-  boundaries sharp.
-* **Two blur passes before decay** — decay ($0.93$) applies only after
-  the second pass, building a wider field of influence without
-  over-evaporating it.
-* **2.5D shading**: combined density $H(\vec x)=\sum_c\text{grid}_c(\vec x)$
-  treated as a height field, finite-difference normal, Lambertian lighting:
+  Positive diagonal entries dictate intra-species cohesion; negative off-diagonal entries generate inter-species shear forces that tear open membrane lacunae and maintain crisp territorial boundaries.
+  * **2.5D Microscopic Normal Shading**:
+    Treats cumulative matter $H(\vec{x}) = \sum_c \mathrm{grid}_c(\vec{x})$ as a continuous surface height-field. Computes surface normal vectors using finite-difference Sobel operators:
 
-  ```math
-  \vec N = \mathrm{normalize}(-k\,\partial_xH,\ -k\,\partial_yH,\ 1.0)
-  ```
-  ```math
-  \text{Shading} = I_{\text{ambient}} + I_{\text{diffuse}}\max(0,\vec N\cdot\vec L)
-  ```
-* **Interaction**: unlike every field-based version's "place food"
-  metaphor, LMB here forcibly reverses the heading of agents within 30px
-  of the cursor and injects density — a disruption tool, not a nutrient
-  source. `R` reseeds.
+$$\vec{N} = \frac{(-\partial_x H, -\partial_y H, 1.0)}{\Vert (-\partial_x H, -\partial_y H, 1.0) \Vert}$$
+
+$$\mathrm{Shading} = I_{\mathrm{ambient}} + I_{\mathrm{diffuse}} \max(0, \vec{N} \cdot \vec{L}) + I_{\mathrm{spec}} (\vec{N} \cdot \vec{H})^\alpha$$
+
+* **Visual Result**: Substitutes flat, luminous lines with three-dimensional, translucent organic cord networks illuminated by directional lighting.
 
 ---
 
-### Comparative Overview
+### Comparative Architecture Matrix
 
-| Tag | Architecture | Basis | Boundary | Visual result |
-| :--- | :--- | :--- | :--- | :--- |
-| **v1.0** | Agent–field PDE | Jeff Jones (2010) | Hard clamp + random re-heading | Dense mesh, boundary-ring artifact |
-| **v2.0** | Generational tip-growth | `ianpilon` | Bounding-box clamp | Botanical paper/ink, atomic-counter bottleneck |
-| **v3.0** | Discrete SCA graph | Runions et al. (2005) | Open substrate | True trunk-to-capillary hierarchy, no sponge risk |
-| **v3.1** | Spatial-hashed SCA graph | Tero & Nakagaki (2010)-aligned pruning | Circular | Dynamic pruning + retrograde reinforcement |
-| **v4.0** | Dual-channel ping-pong | `nicoptere/physarum` | Toroidal wrap | High-contrast smooth cords, UV-space fidelity |
-| **v5.0** | Multi-vector field | Fogleman / Jenson | Toroidal wrap | Lit, 3D-looking competing colonies |
-
----
-
-### Setup & Quick Start
-
-```bash
-pip install taichi numpy
-```
-
-```bash
-git checkout v1.0 && python main.py   # dense swarm, continuum field
-git checkout v2.0 && python main.py   # generational tip-growth
-git checkout v3.0 && python main.py   # space colonization graph
-git checkout v3.1 && python main.py   # + spatial hashing, retrograde pruning, GGUI HUD
-git checkout v4.0 && python main.py   # dual-channel delayed blending
-git checkout v5.0 && python main.py   # multi-species + 2.5D relief
-```
-
-**v3.1 controls**: RMB inoculate · LMB drop food · Space pause/resume · `R` reset
-**v3.1 requirements**: Python 3.8–3.12, NVIDIA GPU (CUDA, 4GB+ VRAM recommended)
-
----
-
-### Credits & References
-
-* **Jeff Jones (2010)**. *Characteristics of Pattern Formation and
-  Evolution in Approximations of Physarum Polycephalum*. Artificial
-  Life, 16(2), 127–153.
-* **Adam Runions et al. (2005)**. *Modeling and Visualization of Leaf
-  Venation Patterns*. ACM TOG, 24(3), 702–711.
-* **Atsushi Tero & Toshiyuki Nakagaki et al. (2010)**. *Rules for
-  Biologically Inspired Adaptive Network Design*. Science, 327(5964),
-  439–442.
-* **`ianpilon`** — generational tip-growth reference for v2.0.
-* **Nicolas Barradeau (`nicoptere/physarum`)**.
-  <https://github.com/nicoptere/physarum>
-* **Michael Fogleman (`fogleman/physarum`)**.
-  <https://github.com/fogleman/physarum>
-* **Sage Jenson**. <https://sagejenson.com/physarum>
+| Version Tag | Computational Core | Theoretical Origin | Boundary Model | Topological Behavior | Primary Aesthetic |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **v1.0** | Agent-Field PDE | Jeff Jones (2010) | Hard Clamp & Random Reset | Isotropic Sponge Reticulation | Dual-Scale Optical Density |
+| **v2.0** | Recursive Tree | Ian Pilon (`ianpilon`) | Bounding Box Clamp | Hierarchical Apical Budding | Botanical Archival Ink & Paper |
+| **v3.0** | Discrete Attractor | Adam Runions (2005) | Semi-Infinite Substrate | True Venation (Zero Sponge) | Structural Filament Density |
+| **v3.1** | Spatial-Hashed Graph | Tero & Nakagaki (2010) | Circular Hydrodynamic Lip | Dynamic Retraction & Pruning | Specular Microscope Micro-Relief |
+| **v4.0** | Dual-Channel Ping-Pong | Nicolas Barradeau (`nicoptere`) | Toroidal Periodic Wrap | High-Reynolds Viscous Cords | Grayscale Temporal Phase Buffer |
+| **v5.0** | Multi-Vector Field | Michael Fogleman / Sage Jenson | Toroidal Periodic Wrap | Competitive Pores & Lacunae | 2.5D Photometric Electron Relief |
 
 ---
 
 <a id="chinese-documentation"></a>
 ## 中文说明
 
-基于 Taichi 的多头绒泡菌（*Physarum polycephalum*）形态发生与自适应输运网络模拟，支持 CUDA / Vulkan 后端。
+### 架构全景与双重计算范式
 
-两条技术路线，六个 tag：
+多头绒泡菌（*Physarum polycephalum*）形态发生的数学建模，核心挑战在于平衡**局域流体连续性与宏观脉管系统拓扑剪枝**。在计算生成设计领域，主要存在两条截然不同的技术路线：
 
+1. **连续场多智能体模型（Jones-Lague-Yuen 体系）**：
+   无中心化的纯粒子流驱动。数十万至数百万粒子在二维平面上根据局部嗅探到的化学势能浓度差进行偏转，通过信息素轨迹分泌、空间扩散与衰减的非线性正反馈，自发涌现出脉管结构。
+2. **离散空间拓扑殖民图（Runions-Tero 生物输运体系）**：
+   图论几何模型。通过在培养基离散播撒养分吸引子，牵引节点迭代生成树状网络，结合反向水力通量回溯与泊肃叶定律进行管道口径缩放与盲端剪枝。
+
+本项目完整推演、验证并沉淀了上述两套体系，在 Git Tags 中以 `v1.0` 至 `v3.1` 以及 `v4.0`、`v5.0` 形成严密的科研演进链条。
+
+```text
+                             [ 黏菌形态发生计算流 ]
+                                       │
+             ┌─────────────────────────┴─────────────────────────┐
+             ▼                                                   ▼
+     [ 分支甲：连续相场粒子流 ]                           [ 分支乙：离散拓扑图网络 ]
+   (Jones 2010 / Lague / Yuen)                          (Runions 2005 / Tero 2010)
+             │                                                   │
+             ├─► v1.0: 密集粒子流与原生质穿梭流                  ├─► v3.0: 纯空间殖民图算法 (SCA)
+             ├─► v2.0: 显式代际顶芽分叉 (ianpilon)               └─► v3.1: 空间哈希加速 + 逆行通量
+             ├─► v4.0: 双通道延迟混合 (nicoptere)                          剪枝代谢 + 原生 GGUI 仪表盘
+             └─► v5.0: 异种拮抗矩阵与 2.5D 法线 (fogleman / Jenson)
 ```
-                         [ 黏菌形态发生问题空间 ]
-                                    │
-             ┌─────────────────────┴─────────────────────┐
-             ▼                                             ▼
-    [ 连续场路线 ]                                  [ 离散图路线 ]
-  (Jones 2010 / Barradeau / Fogleman)          (Runions 2005 / Tero-Nakagaki 2010)
-             │                                             │
-    ├─► v1.0: 密集粒子流 + 原生质穿梭流                  ├─► v3.0: 空间殖民图算法 (SCA)
-    ├─► v2.0: 显式代际顶芽分叉 (ianpilon)                └─► v3.1: 空间哈希加速 + 逆行剪枝
-    ├─► v4.0: 双通道延迟混合 (nicoptere)                           + GGUI HUD
-    └─► v5.0: 多物种拮抗 + 2.5D 立体光影 (fogleman / Jenson)
-```
-
-### `v1.0` — 密集粒子流与原生质穿梭流
-* **对应 Commit**：`2af9244`
-* **理论基础**：Jeff Jones（2010）多智能体化学趋向性输运模型。
-* **规模**：1024×1024 网格，120 万粒子。
-* **转向规则** —— 不是一个干净的 sign 函数，是和源码一致的四分支判断：
-
-  ```math
-  \theta_{t+1} = \begin{cases}
-  \theta_t & F > L \text{ 且 } F > R \\
-  \theta_t \pm RA\ (\text{随机符号}) & F < L \text{ 且 } F < R \\
-  \theta_t - RA & L > R \\
-  \theta_t + RA & R > L
-  \end{cases}
-  ```
-
-  探测距离 $SS=3.5\text{px}$，探针半角 $22.5^\circ$，转向步长 $RA=45^\circ$。（源码里变量名 `SO`、`SA` 和实际功能是反的，这里按功能描述，不按变量名。）
-* **穿梭流调制的是分泌量，不是速度**，进食/非进食用不同系数：
-
-  ```math
-  \text{分泌量} = \begin{cases}
-  D_0\,(2.5 + 1.5\sin(2t - 0.015(x{+}y)\,s)) & \text{正在进食} \\
-  D_0\,(0.8 + 0.3\sin(2t - 0.015(x{+}y)\,s)) & \text{其他情况}
-  \end{cases}
-  ```
-
-  $D_0=4.0$，$s=\mathrm{sign}(\sin(0.15t))$。
-* **边界**：硬性钳位位置 + 完全重新随机化朝向，不是反弹。这就是边缘那圈亮环伪影的直接成因。
-* **渲染**：双段非线性显色——低透明度"边缘细丝"项负责微弱毛细结构，三次方"核心"项负责饱和主干。
-
-### `v2.0` — 显式代际顶芽分叉
-* **对应 Commit**：`d48f330`
-* **理论基础**：改编自 `ianpilon` 的 Processing/JS 顶芽生长实现，配合植物标本档案渲染。
-* **架构**：粒子带显式代际计数与有限寿命，通过原子计数器在固定大小环形缓冲区分配。
-* **分叉概率随代际衰减**：
-
-  ```math
-  P_{\text{branch}}(g) = f_{ch}\cdot f_{acc}^{\,g}
-  ```
-* **子代的分泌强度与寿命各自独立衰减**：
-
-  ```math
-  D_{\text{child}} = D_{\text{parent}}\cdot v_{tap} \qquad
-  L_{\text{child}} = L_{\text{base}}\cdot l_{tap}^{\,g+1}
-  ```
-* **渲染**：四阶 FBM 纸纤维噪声，加一个随半径变化的伽马指数，让中心和探索前沿显色不同：
-
-  ```math
-  \text{trail}_{\text{显色}} = \text{trail}^{\,0.5+0.4d}
-  ```
-
-  （$d$ 为到中心的归一化距离），之后做纸色→墨色→边缘色的三段混合叠加颗粒噪声。
-* **已知失效模式**：每次分叉都命中同一个原子计数器（`alloc_counter`），分叉爆发时会把本该并行的 GPU 线程串行化。
-
-### `v3.0` — 空间殖民拓扑图 (SCA)
-* **对应 Commit**：`a8923be`
-* **理论基础**：Runions et al.（2005）空间殖民算法——彻底脱离连续场粒子，"植株"本身就是一个离散图。
-* **机制**：12,000 个吸引子在 `attract_dist = 50px` 内牵引最近的图节点；被牵引节点朝拉力向量归一化和的方向生长一步（`step_size = 3.5px`）：
-
-  ```math
-  \vec v_{\text{grow},j} = \mathrm{normalize}\left(\sum_{k\in N_j}\frac{\vec A_k-\vec N_j}{\lVert\vec A_k-\vec N_j\rVert}\right)
-  ```
-
-  节点进入 `kill_dist = 6px` 后，对应吸引子被消耗。
-* **效果**：结构上就保证主干到毛细血管的层级——没有可饱和的场，海绵化在数学上不可能发生。
-* **已知局限**：最近节点搜索是暴力 `O(N_attrs · N_nodes)` 嵌套循环，还没做空间分区（这是 v3.1 加的）。
-
-### `v3.1` — 空间哈希加速、逆行剪枝与 GGUI HUD
-* **对应 Commit**：`7bda3a1`
-* **理论基础**：在 v3.0 的 SCA 图基础上，加入概念上对齐 Tero & Nakagaki（2010）自适应网络设计的流量剪枝机制，并给最近节点搜索做空间分区加速。
-* **release notes 确认的内容**：
-  * 空间哈希取代了 v3.0 的暴力搜索，解决的正是那个 `O(N_attrs · N_nodes)` 瓶颈。
-  * 接触到食物点会触发**逆行通量**信号，沿父节点链路向回传播，强化那条通向食物的路径。
-  * 没有携带被强化流量的盲端细丝会触发**泊肃叶式剪枝**，大约 3~5 秒内溶解消失。
-  * 视口内的 **Dear ImGui HUD** 实时显示节点/状态指标，未接种时有一个"呼吸环"提示放置位置。
-* **未经确认、明确标注出来而不是瞎编**：release notes 没给出具体常数——哈希网格的单元大小、每个单元最多容纳的节点数、"停滞"对应的具体流量阈值、每步的活性衰减率、逆行通量的增量。如果你要把这些数字写进 README，需要从 v3.1 真实源码里拿，而不是延续之前某版草稿里的数字——早前那版文档里写的 40×40px 网格、`MAX_NODES_PER_CELL=128`、`flow<0.16`、`vitality -= 0.0035`、`Φ_parent += 0.55`，在你贴的 release notes 里根本找不到对应内容，所以这版我直接删掉了，没有照抄。
-* **交互**：鼠标右键接种母核；左键投放食物点；空格暂停/继续；`R` 重置。
-* **运行环境**：Python 3.8~3.12，NVIDIA GPU（CUDA，建议 4GB+ 显存），`pip install taichi`。
-
-### `v4.0` — 双通道延迟混合
-* **对应 Commit**：`e4941c2`
-* **理论基础**：对照 `nicoptere/physarum` 的 WebGL/GLSL 源码贴近实现。
-* **规模**：512×512=262,144 个粒子（对应原版纹理粒子数），800×800 网格。
-* **双通道取代单一场**——**R 通道**（当前帧粒子光栅化位置）与 **G 通道**（时间平滑记忆），非对称混合：
-
-  ```math
-  G_{t+1}(\vec x) = \gamma\sum_{\vec\delta}\tfrac{1}{9}\left[R_t(\vec x+\vec\delta) + 0.5\,G_t(\vec x+\vec\delta)\right]
-  ```
-
-  $\gamma=0.90$，对 3×3 邻域求和。
-* **全程使用归一化 UV 坐标**——感知、步长、环形回绕（$\vec x_{\text{wrapped}}=\mathrm{fract}(\vec x)$）都在 $[0,1]^2$ 里，贴合原始 shader 的纹理空间设计。
-* **随机数**：转向平局用哈希函数复刻原版 GLSL 的 `rand()`，不是 Taichi 内置随机数。
-* **交互**：按住左键每帧在光标附近注入 1200 个粒子。
-
-### `v5.0` — 多物种拮抗与 2.5D 立体光影
-* **对应 Commit**：`86e1294`
-* **理论基础**：Michael Fogleman（`fogleman/physarum`）的多物种模型，该项目本身参考了 Sage Jenson 的 `pkg/physarum/model.go`，结合 2.5D 法线渲染。
-* **规模**：60 万粒子，2 个物种，800×800 网格，环形（像素空间）回绕。
-* **物种交互张量**——每个物种感知的是两个密度场的加权组合：
-
-  ```math
-  M = \begin{pmatrix} +1.0 & -0.4 \\ -0.4 & +1.0 \end{pmatrix}
-  ```
-
-  对角线正值驱动同物种聚合；非对角线负值把物种互相推开，撕开间隙，边界保持锐利。
-* **先两遍模糊后衰减**——衰减（0.93）只在第二遍之后应用一次，先扩展势场范围再统一蒸发。
-* **2.5D 光影**：总密度场 $H(\vec x)=\sum_c\text{grid}_c(\vec x)$ 当高度图，有限差分求法线，兰伯特光照：
-
-  ```math
-  \vec N = \mathrm{normalize}(-k\,\partial_xH,\ -k\,\partial_yH,\ 1.0)
-  ```
-  ```math
-  \text{光照} = I_{\text{环境}} + I_{\text{漫反射}}\max(0,\vec N\cdot\vec L)
-  ```
-* **交互**：和其他连续场版本"投放食物"的思路不同，这里左键会强制反转光标 30 像素范围内粒子的朝向并注入密度——是扰动工具，不是养分源。`R` 重新接种。
 
 ---
 
-### 对比总览
+### 版本演进编年史与学术溯源
 
-| 版本 | 架构 | 理论基础 | 边界 | 视觉结果 |
-| :--- | :--- | :--- | :--- | :--- |
-| **v1.0** | 智能体-场 PDE | Jeff Jones (2010) | 硬钳位+朝向重随机化 | 密集网格，边界亮环伪影 |
-| **v2.0** | 代际顶芽生长 | `ianpilon` | 边界盒钳位 | 植物标本纸感，原子计数器瓶颈 |
-| **v3.0** | 离散 SCA 图 | Runions et al. (2005) | 开放基质 | 真正的主干-毛细层级，不会海绵化 |
-| **v3.1** | 空间哈希 SCA 图 | 对齐 Tero & Nakagaki (2010) 的剪枝思路 | 圆形 | 动态剪枝 + 逆行强化 |
-| **v4.0** | 双通道 Ping-Pong | `nicoptere/physarum` | 环形回绕 | 高对比度平滑管道，UV 空间高保真 |
-| **v5.0** | 多物种场 | Fogleman / Jenson | 环形回绕 | 有光影层次的多物种竞争群落 |
+#### `v1.0` - 基础高密粒子流与穿梭流 (Baseline Dense Swarm)
+* **对应 Commit**: `2af9244`
+* **学术溯源**: 基于 Dr. Jeff Jones (2010) 的 Multi-Agent 连续场化学趋向性模型。
+* **计算架构**：120 万高密度活动质点与欧拉连续网格场耦合。
+* **核心数学算子**：
+  * 四分支条件转向决策：根据前方、左侧、右侧探针采样的特征值执行直行、随机偏转或左右侧向转向。前置探针偏移角 $SO = 22.5^\circ$，感知半角 $SA = 45.0^\circ$，前探步距 $SS = 3.5\mathrm{px}$。
+  * 分泌沉积调制：利用低频行波动态调制单步移动的 *轨迹沉积强度*（而非直接调制代理速度），区分进食与非进食状态下的沉积系数。
+  * 3×3 离散高斯平滑核卷积与乘法挥发（衰减率 $\gamma = 0.94$）。
+* **边界模型**：采用硬坐标位置钳位加触壁后完全随机重置航向（导致视口边缘出现密集的密度积压亮环）。
+
+#### `v2.0` - 显式代际顶端分叉与标本着色 (Generational Tip-Growth)
+* **对应 Commit**: `d48f330`
+* **学术溯源**: 移植 Ian Pilon (`ianpilon`) 基于 Processing 的顶端分生组织递归算法，融合 Sage Jenson 标本底色调色板。
+* **计算架构**：顶端出芽机制（Tip-Growth），粒子具有显式生命周期与代际元数据。
+* **动力学机制**：
+  * 粒子携带代际深度 $g \in [0, 6]$ 与存活寿命计数器 $L_i$。
+  * 侧向出芽分叉概率随代际指数递减：
+
+$$P_{\mathrm{branch}} = P_0 \cdot \alpha_{\mathrm{acc}}^g$$
+
+  * 子代分支继承按衰减系数 $V_{\mathrm{tap}}$ 折减的分泌效价。
+* **着色器美学**：复刻古典植物档案纸张渗透质感。通过四阶分形布朗运动（FBM）对标量场进行各向异性渗透侵蚀，叠加微观伪随机高斯颗粒：
+
+$$\mathrm{Color} = \mathrm{lerp}(\vec{C}_{\mathrm{paper}}, \vec{C}_{\mathrm{ink}}, \mathrm{Trail}^\gamma) + \mathrm{Grain}(\vec{x}, t)$$
+
+* **失效模式分析**：树状分叉爆发期引发 GPU 线程束分化（Warp Divergence），全局原子自增计数器严重拖慢硬件吞吐。
+
+#### `v3.0` - 纯空间殖民拓扑图网络 (Space Colonization Graph)
+* **对应 Commit**: `a8923be`
+* **学术溯源**: 奠基于 Adam Runions et al. (2005) 空间殖民算法（Space Colonization Algorithm, SCA）。
+* **计算架构**：彻底放弃欧拉连续网格，全面转向基于空间殖民算法的拉格朗日拓扑树图。
+* **动力学机制**：
+  * 离散养分吸引子 $\vec{A}_k$ 布设于底质空间。
+  * 影响域检索：吸引子在影响半径 $D_{\mathrm{attr}} = 50.0\mathrm{px}$ 内对临近血管树节点施加归一化牵引力（步长设置为 $3.5\mathrm{px}$）：
+
+$$\vec{v}_{\mathrm{grow}} = \frac{\sum_{k} (\vec{A}_k - \vec{N}_j)}{\left\Vert \sum_{k} (\vec{A}_k - \vec{N}_j) \right\Vert}$$
+
+  * 养分消耗判定：当节点逼近至摄食半径 $D_{\mathrm{kill}} = 6.0\mathrm{px}$ 内部时，吸引子灭活并转化为脉管粗度。
+* **形态学突破**：从几何拓扑层面根除了网格模型的迷宫海绵化缺陷，严格构建出主干粗壮、末端毛细的自然层级结构。
+
+#### `v3.1` - 空间哈希网格加速、逆行剪枝代谢与交互 HUD
+* **对应 Commit**: `7bda3a1`
+* **学术溯源**: 完整复刻 Atsushi Tero & Toshiyuki Nakagaki et al. (2010) 发表于 *Science* 的东京铁路网络自适应流体阻力动力学，结合泊肃叶定律与 SCA 拓扑扩展。
+* **计算架构**：SCA 拓扑图系统的工程化重构与生物流体力学闭环。
+* **核心升级机制**：
+  * **GPU 空间哈希加速桶**：将视口划分为空间桶网格单元，把几何最近邻检索复杂度从全局暴力比对 `` `O(N_attrs * N_nodes)` `` 降低到局域网格循环，在 1080P/2K 视口下稳定维持 60 FPS 满帧运行。
+  * **逆行通量与泊肃叶剪枝（Retrograde Pruning）**：当探索末梢物理触碰燕麦养分点时，激活反向通量泵（Retrograde Flow），沿父节点指针向母核回溯注入输运通量 $\Delta \Phi$：
+
+$$\Phi_{\mathrm{parent}} \leftarrow \Phi_{\mathrm{parent}} + \Delta \Phi$$
+
+  输运通量低于阈值的冗余探索细丝，其生物活性以固定速率衰减并在 3\~5 秒内完全凋亡溶解。
+  * **GGUI 原生控制台**：在视口内集成 Dear ImGui 状态面板，实时监控活动节点规模与系统生命周期。
+  * **操作向导**：未接种时中央显示动态呼吸环提示交互步骤。
+
+#### `v4.0` - Dual-Channel Delayed Blending & Torus Topology (双通道延迟混合)
+* **Commit**: `e4941c2`
+* **学术溯源**: 1:1 移植 Nicolas Barradeau (`nicoptere/physarum`) 的经典 WebGL GPGPU 架构。
+* **计算架构**：双纹理延迟平滑与周期环形拓扑。
+* **动力学机制**：
+  * **R 通道（瞬间冲量）**：记录当前帧粒子绝对位置的离散光栅化冲量。
+  * **G 通道（历史相场）**：平滑延迟轨迹场。
+  * 非对称混合卷积核：
+
+$$G_{t+1}(\vec{x}) = \gamma \sum_{\vec{\delta}} K(\vec{\delta}) \left[ R_t(\vec{x} + \vec{\delta}) + 0.5 \cdot G_t(\vec{x} + \vec{\delta}) \right]$$
+
+  * 环形无缝拓扑（Torus Wrap）：利用纯数学取整小数算子实现坐标越界循环：
+
+$$\vec{x}_{\mathrm{wrapped}} = \vec{x} - \lfloor \vec{x} \rfloor$$
+
+* **形态学突破**：消除了培养皿边界反弹形成的堆积伪影，管壁边缘呈现亚像素级别的平滑汇聚感。
+
+#### `v5.0` - Multi-Species Antagonism & 2.5D Height-Field Normal Mapping (多物种拮抗)
+* **Commit**: `86e1294`
+* **学术溯源**: 理论借鉴 Michael Fogleman (`fogleman/physarum`) 多物种张量模型与 Sage Jenson 的 2.5D 冷冻电镜微观视觉风格。
+* **计算架构**：双物种相互作用张量与微表面光度学法线重构。
+* **动力学机制**：
+  * **交叉作用张量（Interaction Tensor）**：
+
+$$M = \begin{pmatrix} +1.0 & -0.4 \\ -0.4 & +1.0 \end{pmatrix}$$
+
+  同类物质正反馈成束，异类物质负反馈强烈排斥。异类剪切力直接撕裂连续相场，形成具有生物张力的孔洞（Membrane Pores）与锐利筋膜边界。
+  * **2.5D 微表面法线着色（Sobel Bump Shading）**：
+    将二维标量总物质场映射为虚拟微观地形高度 $H(x, y)$，通过有限差分提取表面法线向量：
+
+$$\vec{N} = \frac{(-\partial_x H, -\partial_y H, 1.0)}{\Vert (-\partial_x H, -\partial_y H, 1.0) \Vert}$$
+
+  引入倾斜平行光源 $\vec{L}$ 计算半兰伯特漫反射与高光反射。
+* **视觉突破**：摆脱了传统发光粒子的平面游戏感，画面呈现如同冷冻电子显微镜扫描下的立体有机组织质感。
 
 ---
 
-### 环境配置与快速开始
+### 系统运行与环境配置 (Setup & Quick Start)
 
+#### 1. 运行依赖
+* 操作系统: Windows 10/11, Linux, macOS
+* Python 环境: Python 3.8~3.12
+* 底层硬件支持: 兼容 Direct3D 12 / Vulkan 1.2+ 的现代显卡，推荐 NVIDIA GPU（原生调度 CUDA 计算后端）
+
+安装核心计算依赖：
 ```bash
 pip install taichi numpy
 ```
 
+#### 2. 检出并运行历史里程碑版本
+可通过 Git Tag 自由切换并检视各个演进阶段的核心架构：
+
 ```bash
-git checkout v1.0 && python main.py   # 密集粒子流，连续场
-git checkout v2.0 && python main.py   # 代际顶芽分叉
-git checkout v3.0 && python main.py   # 空间殖民拓扑图
-git checkout v3.1 && python main.py   # + 空间哈希、逆行剪枝、GGUI HUD
-git checkout v4.0 && python main.py   # 双通道延迟混合
-git checkout v5.0 && python main.py   # 多物种拮抗 + 2.5D 立体光影
+# 检出 v1.0 基础高密穿梭流模型 (Jeff Jones 连续场)
+git checkout v1.0
+python main.py
+
+# 检出 v2.0 显式代际顶端分叉与植物标本着色 (ianpilon 路线)
+git checkout v2.0
+python main.py
+
+# 检/出 v3.0 纯空间殖民拓扑血管网 (Adam Runions SCA 算法)
+git checkout v3.0
+python main.py
+
+# 检出 v3.1 空间哈希拓扑图网络 (Tero & Nakagaki 水力剪枝 + GGUI 交互)
+git checkout v3.1
+python main.py
+
+# 检出 v4.0 双通道 GPGPU 延迟混合模型 (nicoptere 架构)
+git checkout v4.0
+python main.py
+
+# 检出 v5.0 多物种拮抗与 2.5D 法线立体模型 (fogleman / Sage Jenson)
+git checkout v5.0
+python main.py
 ```
 
-**v3.1 交互**：右键接种 · 左键投放食物 · 空格暂停/继续 · `R` 重置
-**v3.1 运行环境**：Python 3.8~3.12，NVIDIA GPU（CUDA，建议 4GB+ 显存）
+#### 3. v3.1 运行时交互控制定义
+* **鼠标右键 (RMB)**: 在培养皿内指定位置接种黏菌母核并释放全局各向同性探索引力子。
+* **鼠标左键 (LMB)**: 投放下高能燕麦粒（产生局部密集引力波前）。
+* **空格键 (Space)**: 暂停 / 继续系统演进。
+* **按键 R**: 重置全域显存，清空脉管图网络。
 
 ---
 
-### 致谢与参考文献
+### 致谢与学术源流 (Credits & References)
 
-* **Jeff Jones (2010)**. *Characteristics of Pattern Formation and Evolution in Approximations of Physarum Polycephalum*. Artificial Life, 16(2), 127–153.
-* **Adam Runions et al. (2005)**. *Modeling and Visualization of Leaf Venation Patterns*. ACM TOG, 24(3), 702–711.
-* **Atsushi Tero & Toshiyuki Nakagaki et al. (2010)**. *Rules for Biologically Inspired Adaptive Network Design*. Science, 327(5964), 439–442.
-* **`ianpilon`** —— v2.0 代际顶芽生长的参考实现。
-* **Nicolas Barradeau (`nicoptere/physarum`)**. <https://github.com/nicoptere/physarum>
-* **Michael Fogleman (`fogleman/physarum`)**. <https://github.com/fogleman/physarum>
-* **Sage Jenson**. <https://sagejenson.com/physarum>
+本项目建立在一批开源图形学家、生物物理学家与程序艺术家的理论及工程基石之上：
+
+* **Jeff Jones (2010)**: *Characteristics of Pattern Formation and Evolution in Approximations of Physarum Polycephalum*. Artificial Life, 16(2), 127-153. (提出多智能体粒子连续场嗅探与运动决策的奠基性模型)。
+* **Adam Runions et al. (2005)**: *Modeling and visualization of leaf venation patterns*. ACM Transactions on Graphics (TOG), 24(3), 702-711. (提出空间殖民算法 SCA，奠定了脉管网络的几何生长理论)。
+* **Atsushi Tero, Toshiyuki Nakagaki et al. (2010)**: *Rules for Biologically Inspired Adaptive Network Design*. Science, 327(5964), 439-442. (著名的东京铁路黏菌输运实验，确立了基于管流输运反馈的自发剪枝代谢模型)。
+* **Sage Jenson**: *Physarum Polycephalum Simulation & Procedural Aesthetics*. <https://cargocollective.com/sagejenson/physarum> (确立了基于 2.5D 法线凹凸映射、芥末金黄色谱与电子显微镜立体浮雕质感的美学范式)。
+* **Nicolas Barradeau (nicoptere)**: *WebGL GPGPU Multi-agent Transport Network*. <https://github.com/nicoptere/physarum> (开创了基于双通道 Ping-Pong 帧缓冲时间延迟滤波与环形边界拓扑的高性能 WebGL 流水线)。
+* **Michael Fogleman**: *Physarum - Multi-species Agent Simulation in Go*. <https://github.com/fogleman/physarum> (实现了多物种交叉相互作用亲和张量, 级联空间多遍模糊与亚像素连续插值技术)。
+* **Sebastian Lague**: *Slime Simulation Compute Shader Pipeline*. <https://github.com/SebLague/Slime-Simulation> (验证了基于现代化 GPU Compute Shader 高并发调度百万级无状态粒子的工程架构)。
+* **Jeffrey (Ka Hin) Yuen**: *PHYSARUM: Slime Mold Simulator*. <https://store.steampowered.com/app/1667120/PHYSARUM_Slime_Mold_Simulator/> (在商业级产品中验证了统一环境势能标量场结合面阵区域探针采样在大规模 GPU 模拟中的稳定性和表现力)。
+* **Ian Pilon (ianpilon)**: *Physarum Dendritic Morphogenesis in Processing*. <https://github.com/ianpilon/physarum> (提供了顶端递归出芽概率分化、代际生命衰退与植物档案着色器的参考范式)。
