@@ -46,8 +46,8 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **Architecture**: Continuous scalar field coupled with 1.2M discrete active agents.
 * **Mathematical Stencil**:
   * Agent heading update via discrete three-point differential sensing:
-    $$\theta_{t+1} = \theta_t + \Delta\theta \cdot \operatorname{sign}(S_R - S_L)$$
-    where forward offset sensors ($S_L, S_C, S_R$) sample the trail intensity at sensor offset $SO = 22.5^\circ$, sensor angle $SA = 45.0^\circ$, and sampling distance $SS = 3.5\,\mathrm{px}$.
+    $$\theta_{t+1} = \theta_t + \Delta\theta \cdot \mathrm{sign}(S_R - S_L)$$
+    where forward offset sensors ($S_L, S_C, S_R$) sample the trail intensity at sensor offset $SO = 22.5^\circ$, sensor angle $SA = 45.0^\circ$, and sampling distance $SS = 3.5\mathrm{px}$.
   * Cytoplasmic shuttle streaming: Macro-scale rhythmic contraction modulated via low-frequency sinusoidal velocity fields:
     $$v(t) = v_0 \cdot \left[1.0 + 0.3 \sin\left(\omega t - \vec{k} \cdot \vec{x}\right)\right]$$
   * Multiplicative field decay ($\gamma = 0.94$) over an isotropic $3 \times 3$ discrete convolution kernel.
@@ -64,7 +64,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
   * Distal daughters inherit attenuated deposition potency:
     $$D_{\mathrm{child}} = D_{\mathrm{parent}} \cdot V_{\mathrm{tap}}$$
 * **Renderer**: Botanical archival specimen shader. Evaluates four-octave Fractional Brownian Motion (FBM) to simulate heterogeneous liquid ink absorption over porous paper substrates:
-  $$\mathrm{Color} = \operatorname{lerp}\left(\vec{C}_{\mathrm{paper}}, \vec{C}_{\mathrm{ink}}, \mathrm{Trail}^\gamma\right) + \operatorname{Grain}(\vec{x}, t)$$
+  $$\mathrm{Color} = \mathrm{lerp}\left(\vec{C}_{\mathrm{paper}}, \vec{C}_{\mathrm{ink}}, \mathrm{Trail}^\gamma\right) + \mathrm{Grain}(\vec{x}, t)$$
 * **Failure Mode Analysis**: Exponential bud proliferation triggers GPU thread serialization and thread-divergence bottlenecks around atomic allocation counters (`alloc_counter`).
 
 #### `v3.0` - Pure Space Colonization Vascular Graph (SCA)
@@ -73,10 +73,10 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **Architecture**: Complete transition from continuum grid Eulerian tracking to discrete Lagrangian graph growth based on spatial attractor point distributions.
 * **Mechanics**:
   * 12,000 discrete chemoattractant markers $\vec{A}_k$ distributed pseudo-randomly across the substrate.
-  * Influence cone search: Each active marker pulls the nearest vascular graph node $\vec{N}_j$ within search radius $D_{\mathrm{attr}} = 38.0\,\mathrm{px}$.
+  * Influence cone search: Each active marker pulls the nearest vascular graph node $\vec{N}_j$ within search radius $D_{\mathrm{attr}} = 38.0\mathrm{px}$.
   * Normalized growth vector accumulation:
-    $$\vec{v}_{\mathrm{grow}} = \operatorname{normalize}\left(\sum_{k} \frac{\vec{A}_k - \vec{N}_j}{\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{}}\right)$$
-  * Consumption threshold: Attractors undergo metabolic depletion and deletion when $\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{} < D_{\mathrm{kill}} = 7.5\,\mathrm{px}$.
+    $$\vec{v}_{\mathrm{grow}} = \mathrm{normalize}\left(\sum_{k} \frac{\vec{A}_k - \vec{N}_j}{\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{}}\right)$$
+  * Consumption threshold: Attractors undergo metabolic depletion and deletion when $\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{} < D_{\mathrm{kill}} = 7.5\mathrm{px}$.
 * **Structural Result**: Eradicates sponge-maze collapse. Guarantees hierarchical trunk-to-capillary diameter scaling while maintaining organic topological spacing.
 
 #### `v3.1` - Spatial-Hashed Optimization, Retrograde Pruning & Interactive HUD
@@ -84,7 +84,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **Theoretical Foundation**: Atsushi Tero & Toshiyuki Nakagaki (2010) adaptive biological network design (Tokyo railway experiment), coupled with Runions' SCA and Hagen-Poiseuille hydraulic resistance.
 * **Architecture**: High-performance optimization of the SCA vascular engine with Poiseuille-inspired retrograde pruning, spatial hash partitioning, and Taichi GGUI instrumentation.
 * **Key Enhancements**:
-  * **GPU Spatial Hashing Acceleration**: Partitions the grid into spatial bins of size $40 \times 40\,\mathrm{px}$, reducing the nearest-node search from brute-force `O(N_attrs * N_nodes)` down to localized adjacent cell sweeps (`MAX_NODES_PER_CELL = 128`), maintaining 60 FPS on mid-range hardware.
+  * **GPU Spatial Hashing Acceleration**: Partitions the grid into spatial bins of size $40 \times 40\mathrm{px}$, reducing the nearest-node search from brute-force `O(N_attrs * N_nodes)` down to localized adjacent cell sweeps (`MAX_NODES_PER_CELL = 128`), maintaining 60 FPS on mid-range hardware.
   * **Retrograde Flow & Poiseuille Pruning**: Upon physical contact between an exploration tip and a nutrient site, a recursive backward traversal pumps transport flux upstream through parent indices:
     $$\Phi_{\mathrm{parent}} \leftarrow \Phi_{\mathrm{parent}} + \Delta \Phi$$
     Vessels with stagnant flow (`flow < 0.16`) suffer metabolic penalty (`vitality -= 0.0035`), dissolving and clearing non-transporting search paths within 3\~5 seconds.
@@ -101,7 +101,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
   * Asymmetric convolution kernel:
     $$G_{t+1}(\vec{x}) = \gamma \sum_{\vec{\delta}} K(\vec{\delta}) \left[R_t(\vec{x} + \vec{\delta}) + 0.5 \cdot G_t(\vec{x} + \vec{\delta})\right]$$
   * Torus periodic boundary topology: Evaluated via floating-point fractional arithmetic:
-    $$\vec{x}_{\mathrm{wrapped}} = \operatorname{fract}(\vec{x})$$
+    $$\vec{x}_{\mathrm{wrapped}} = \mathrm{fract}(\vec{x})$$
 * **Structural Result**: Complete removal of boundary accumulation. The asymmetric $1.0 : 0.5$ kernel weight preserves sharp leading search fronts while leaving smooth, fluid conduits behind.
 
 #### `v5.0` - Multi-Species Antagonism & 2.5D Height-Field Normal Mapping
@@ -113,8 +113,8 @@ This repository implements, benchmark-tests, and preserves both paradigms across
     $$M = \begin{pmatrix} +1.0 & -0.4 \\ -0.4 & +1.0 \end{pmatrix}$$
     Positive diagonal entries dictate intra-species cohesion; negative off-diagonal entries generate inter-species shear forces that tear open membrane lacunae and maintain crisp territorial boundaries.
   * **2.5D Microscopic Normal Shading**:
-    Treats cumulative matter $H(\vec{x}) = \sum_c \operatorname{grid}_c(\vec{x})$ as a continuous surface height-field. Computes surface normal vectors using finite-difference Sobel operators:
-    $$\vec{N} = \operatorname{normalize}\left(-k \cdot \partial_x H, -k \cdot \partial_y H, 1.0\right)$$
+    Treats cumulative matter $H(\vec{x}) = \sum_c \mathrm{grid}_c(\vec{x})$ as a continuous surface height-field. Computes surface normal vectors using finite-difference Sobel operators:
+    $$\vec{N} = \mathrm{normalize}\left(-k \cdot \partial_x H, -k \cdot \partial_y H, 1.0\right)$$
     $$\mathrm{Shading} = I_{\mathrm{ambient}} + I_{\mathrm{diffuse}} \max\left(0, \vec{N} \cdot \vec{L}\right) + I_{\mathrm{spec}} \left(\vec{N} \cdot \vec{H}\right)^\alpha$$
 * **Visual Result**: Substitutes flat, luminous lines with three-dimensional, translucent organic cord networks illuminated by directional lighting.
 
@@ -122,21 +122,21 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 
 ### Comparative Architecture Matrix
 
-| Version Tag | Computational Core | Theoretical Origin | Boundary Model | Topological Behavior | Primary Aesthetic |
+| Tag | Architecture | Complexity | Theoretical Origin | Topological Phenomenon | Visual Paradigm |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **v1.0** | Agent-Field PDE | Jeff Jones (2010) | Circular Rigid Reflection | Isotropic Sponge Reticulation | Dual-Scale Optical Density |
-| **v2.0** | Recursive Tree | Ian Pilon (`ianpilon`) | Bounding Box Clamp | Hierarchical Apical Budding | Botanical Archival Ink & Paper |
-| **v3.0** | Discrete Attractor | Adam Runions (2005) | Semi-Infinite Substrate | True Venation (Zero Sponge) | Structural Filament Density |
-| **v3.1** | Spatial-Hashed Graph | Tero & Nakagaki (2010) | Circular Hydrodynamic Lip | Dynamic Retraction & Pruning | Specular Microscope Micro-Relief |
-| **v4.0** | Dual-Channel Ping-Pong | Nicolas Barradeau (`nicoptere`) | Toroidal Periodic Wrap | High-Reynolds Viscous Cords | Grayscale Temporal Phase Buffer |
-| **v5.0** | Multi-Vector Field | Michael Fogleman / Sage Jenson | Toroidal Periodic Wrap | Competitive Pores & Lacunae | 2.5D Photometric Electron Relief |
+| **v1.0** | Agent-Field PDE | `O(N_agents)` | Jeff Jones (2010) | Isotropic Sponge Reticulation | Dual-Scale Optical Density |
+| **v2.0** | Recursive Tree | `O(N_active)` | Ian Pilon (`ianpilon`) | Hierarchical Apical Budding | Botanical Archival Ink & Paper |
+| **v3.0** | Discrete Attractor | `O(N_nodes * N_attrs)` | Adam Runions (2005) | True Venation (Zero Sponge) | Structural Filament Density |
+| **v3.1** | Spatial-Hashed Graph | `O(N_local_bucket)` | Tero & Nakagaki (2010) | Dynamic Retraction & Pruning | Specular Microscope Micro-Relief |
+| **v4.0** | Dual-Channel Ping-Pong | `O(N_agents + Res^2)` | Nicolas Barradeau (`nicoptere`) | High-Reynolds Viscous Cords | Grayscale Temporal Phase Buffer |
+| **v5.0** | Multi-Vector Field | `O(S * N_agents + Res^2)` | Michael Fogleman / Sage Jenson | Competitive Pores & Lacunae | 2.5D Photometric Electron Relief |
 
 ---
 
 <a id="chinese-documentation"></a>
 ## 中文说明
 
-### 架构全景与计算范式
+### 架构全景与双重计算范式
 
 多头绒泡菌（*Physarum polycephalum*）形态发生的数学建模，核心挑战在于平衡**局域流体连续性与宏观脉管系统拓扑剪枝**。在计算生成设计领域，主要存在两条截然不同的技术路线：
 
@@ -171,8 +171,8 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **计算架构**：120 万高密度活动质点与欧拉连续网格场耦合。
 * **核心数学算子**：
   * 三向离散差分偏转决策：
-    $$\theta_{t+1} = \theta_t + \Delta\theta \cdot \operatorname{sign}(S_R - S_L)$$
-    前置三向探针偏移角 $SO = 22.5^\circ$，感知半角 $SA = 45.0^\circ$，前探步距 $SS = 3.5\,\mathrm{px}$。
+    $$\theta_{t+1} = \theta_t + \Delta\theta \cdot \mathrm{sign}(S_R - S_L)$$
+    前置三向探针偏移角 $SO = 22.5^\circ$，感知半角 $SA = 45.0^\circ$，前探步距 $SS = 3.5\mathrm{px}$。
   * 原生质往复穿梭流（Shuttle Streaming）：低频行波调制运动步长与分泌通量：
     $$v(t) = v_0 \cdot \left[1.0 + 0.3 \sin\left(\omega t - \vec{k} \cdot \vec{x}\right)\right]$$
   * $3 \times 3$ 离散高斯平滑核卷积与乘法挥发（衰减率 $\gamma = 0.94$）。
@@ -188,7 +188,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
     $$P_{\mathrm{branch}} = P_0 \cdot \alpha_{\mathrm{acc}}^g$$
   * 子代分支继承按衰减系数 $V_{\mathrm{tap}}$ 折减的分泌效价。
 * **着色器美学**：复刻古典植物档案纸张渗透质感。通过四阶分形布朗运动（FBM）对标量场进行各向异性渗透侵蚀，叠加微观伪随机高斯颗粒：
-  $$\mathrm{Color} = \operatorname{lerp}\left(\vec{C}_{\mathrm{paper}}, \vec{C}_{\mathrm{ink}}, \mathrm{Trail}^\gamma\right) + \operatorname{Grain}(\vec{x}, t)$$
+  $$\mathrm{Color} = \mathrm{lerp}\left(\vec{C}_{\mathrm{paper}}, \vec{C}_{\mathrm{ink}}, \mathrm{Trail}^\gamma\right) + \mathrm{Grain}(\vec{x}, t)$$
 * **失效模式分析**：树状分叉爆发期引发 GPU 线程束分化（Warp Divergence），全局原子自增计数器（`alloc_counter`）严重拖慢硬件吞吐。
 
 #### `v3.0` - 纯空间殖民拓扑图网络 (Space Colonization Graph)
@@ -197,9 +197,9 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **计算架构**：彻底放弃欧拉连续网格，全面转向基于空间殖民算法的拉格朗日拓扑树图。
 * **动力学机制**：
   * 12,000 个离散养分吸引子 $\vec{A}_k$ 离散布设于底质空间。
-  * 影响域检索：吸引子在影响半径 $D_{\mathrm{attr}} = 38.0\,\mathrm{px}$ 内对临近血管树节点施加归一化牵引力：
-    $$\vec{v}_{\mathrm{grow}} = \operatorname{normalize}\left(\sum_{k} \frac{\vec{A}_k - \vec{N}_j}{\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{}}\right)$$
-  * 养分消耗判定：当节点逼近至摄食半径 $D_{\mathrm{kill}} = 7.5\,\mathrm{px}$ 内部时，吸引子灭活并转化为脉管粗度。
+  * 影响域检索：吸引子在影响半径 $D_{\mathrm{attr}} = 38.0\mathrm{px}$ 内对临近血管树节点施加归一化牵引力：
+    $$\vec{v}_{\mathrm{grow}} = \mathrm{normalize}\left(\sum_{k} \frac{\vec{A}_k - \vec{N}_j}{\left\Vert{} \vec{A}_k - \vec{N}_j \right\Vert{}}\right)$$
+  * 养分消耗判定：当节点逼近至摄食半径 $D_{\mathrm{kill}} = 7.5\mathrm{px}$ 内部时，吸引子灭活并转化为脉管粗度。
 * **形态学突破**：从几何拓扑层面根除了网格模型的迷宫海绵化缺陷，严格构建出主干粗壮、末端毛细的自然层级结构。
 
 #### `v3.1` - 空间哈希网格加速、逆行剪枝代谢与交互 HUD
@@ -207,7 +207,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
 * **学术溯源**: 完整复刻 Atsushi Tero & Toshiyuki Nakagaki et al. (2010) 发表于 *Science* 的东京铁路网络自适应流体阻力动力学，结合泊肃叶定律与 SCA 拓扑扩展。
 * **计算架构**：SCA 拓扑图系统的工程化重构与生物流体力学闭环。
 * **核心升级机制**：
-  * **GPU 空间哈希加速桶**：将视口划分为 $40 \times 40\,\mathrm{px}$ 的离散网格单元，把几何最近邻检索复杂度从全局暴力比对 `O(N_attrs * N_nodes)` 降低到局域网格循环（单个单元容量阈值 `MAX_NODES_PER_CELL = 128`），在 1080P/2K 视口下稳定维持 60 FPS 满帧运行。
+  * **GPU 空间哈希加速桶**：将视口划分为 $40 \times 40\mathrm{px}$ 的离散网格单元，把几何最近邻检索复杂度从全局暴力比对 `O(N_attrs * N_nodes)` 降低到局域网格循环（单个单元容量阈值 `MAX_NODES_PER_CELL = 128`），在 1080P/2K 视口下稳定维持 60 FPS 满帧运行。
   * **逆行通量与泊肃叶剪枝（Retrograde Pruning）**：当探索末梢物理触碰燕麦养分点时，激活反向通量泵（Retrograde Flow），沿父节点指针向母核回溯注入输运通量 $\Delta \Phi$：
     $$\Phi_{\mathrm{parent}} \leftarrow \Phi_{\mathrm{parent}} + 0.55$$
     输运通量低于阈值（`flow < 0.16`）的冗余探索细丝，其生物活性以每步 $0.0035$ 的速率衰减并在 3\~5 秒内完全凋亡溶解。
@@ -236,7 +236,7 @@ This repository implements, benchmark-tests, and preserves both paradigms across
     同类物质正反馈成束，异类物质负反馈强烈排斥。异类剪切力直接撕裂连续相场，形成具有生物张力的孔洞（Membrane Pores）与锐利筋膜边界。
   * **2.5D 微表面法线着色（Sobel Bump Shading）**：
     将二维标量总物质场映射为虚拟微观地形高度 $H(x, y)$，通过有限差分提取表面法线向量：
-    $$\vec{N} = \operatorname{normalize}\left(-k \cdot \partial_x H, -k \cdot \partial_y H, 1.0\right)$$
+    $$\vec{N} = \mathrm{normalize}\left(-k \cdot \partial_x H, -k \cdot \partial_y H, 1.0\right)$$
     引入倾斜平行光源 $\vec{L}$ 计算半兰伯特漫反射与高光反射。
 * **视觉突破**：摆脱了传统发光粒子的平面游戏感，画面呈现如同冷冻电子显微镜扫描下的立体有机组织质感。
 
